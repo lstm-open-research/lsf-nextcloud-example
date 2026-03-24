@@ -15,7 +15,7 @@ This is a **custom Git LFS transfer agent** that stores large files on Nextcloud
 
 ## Setup requirements
 
-- Python ≥ 3.10, [Poetry](https://python-poetry.org/) for dependency management
+- Python ≥ 3.10 + Poetry; R ≥ 4.1 + renv
 - `.env` file (git-ignored) with:
   ```
   NEXTCLOUD_URL=https://your-nextcloud.com
@@ -29,6 +29,10 @@ This is a **custom Git LFS transfer agent** that stores large files on Nextcloud
 ```bash
 # Install dependencies
 poetry install
+Rscript -e "renv::restore()"
+
+# Run the example simulation (generates ~30 MB .dta in outputs/simulations/)
+Rscript code/simulate.R [seed] [n_individuals] [timesteps]
 
 # Verify LFS is tracking files
 git lfs ls-files

@@ -11,8 +11,8 @@ git push ──► pointer ──► repo            binary ──► /LFS/your-
 
 ## Prerequisites
 
-- Python ≥ 3.10
-- [Poetry](https://python-poetry.org/docs/#installation)
+- Python ≥ 3.10 + [Poetry](https://python-poetry.org/docs/#installation)
+- R ≥ 4.1 + [renv](https://rstudio.github.io/renv/) (`install.packages("renv")`)
 - [git-lfs](https://git-lfs.com/) (`brew install git-lfs` / `apt install git-lfs`)
 - Access to a Nextcloud instance where you can create an App Password
 
@@ -21,7 +21,11 @@ git push ──► pointer ──► repo            binary ──► /LFS/your-
 ### 1. Install dependencies
 
 ```bash
+# LFS transfer agent (Python)
 poetry install
+
+# R packages
+Rscript -e "renv::restore()"
 ```
 
 ### 2. Create a Nextcloud App Password
@@ -53,11 +57,24 @@ git lfs pull
 
 This downloads all tracked large files from Nextcloud into your working tree.
 
+## Running the simulation
+
+```bash
+# Default: seed=42, n=50,000 individuals, 365 days (~30 MB output)
+Rscript code/simulate.R
+
+# Custom parameters
+Rscript code/simulate.R <seed> <n_individuals> <timesteps>
+Rscript code/simulate.R 123 100000 730
+```
+
+Output is written to `outputs/simulations/sim_<date>_seed<N>_n<N>_t<N>.dta` and automatically tracked by Git LFS.
+
 ## Daily workflow
 
 ```bash
 # Run simulation, then commit
-Rscript code/simulate.R 42 50000 365
+Rscript code/simulate.R
 git add outputs/simulations/sim_*.dta
 git commit -m "sim: seed=42, pop=50000, timesteps=365"
 git push   # pointer → GitHub, binary → Nextcloud
