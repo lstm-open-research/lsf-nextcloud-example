@@ -9,13 +9,14 @@ This is a **custom Git LFS transfer agent** that stores large files on Nextcloud
 ## How it works
 
 1. `.gitattributes` marks `*.dta` and `*.rds` files for LFS tracking.
-2. `.lfsconfig` tells Git LFS to use `nextcloud-agent` — a custom transfer agent — instead of the default HTTP transfer.
+2. `.lfsconfig` documents the custom transfer agent settings, but **git-lfs 3.x ignores them there** (security restriction on executable-code keys). The settings must live in `.git/config` — see Setup requirements below.
 3. When `git push`/`git pull` runs, Git LFS spawns `lfs-nextcloud-agent.py` as a subprocess and communicates via **JSON messages over stdin/stdout** (the LFS custom transfer protocol).
 4. The agent uploads/downloads files to Nextcloud via WebDAV, mirroring Git LFS's internal directory layout: `<LFS_PATH>/<oid[:2]>/<oid[2:4]>/<oid>`.
 
 ## Setup requirements
 
 - Python ≥ 3.10 + Poetry; R ≥ 4.1 + renv
+- `brew install git-lfs` (or distro equivalent) — must be installed before any commit/push that involves LFS files, otherwise git treats them as regular binaries
 - `.env` file (git-ignored) with:
   ```
   NEXTCLOUD_URL=https://your-nextcloud.com
@@ -23,6 +24,13 @@ This is a **custom Git LFS transfer agent** that stores large files on Nextcloud
   NEXTCLOUD_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
   NEXTCLOUD_LFS_PATH=LFS/malaria-sim
   ```
+- Custom transfer agent registered in `.git/config` (once per clone, not propagated by git):
+  ```bash
+  git config lfs.standalonetransferagent nextcloud-agent
+  git config lfs.customtransfer.nextcloud-agent.path "$(poetry env info --path)/bin/python3"
+  git config lfs.customtransfer.nextcloud-agent.args lfs-nextcloud-agent.py
+  ```
+  The `path` must point to the **poetry venv python** (not bare `python3`) so the `requests` dependency is on the path. git-lfs spawns the agent outside any active shell environment.
 
 ## Running / testing the agent
 

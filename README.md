@@ -49,7 +49,19 @@ NEXTCLOUD_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
 NEXTCLOUD_LFS_PATH=LFS/your-project   # folder path inside Nextcloud
 ```
 
-### 4. Pull LFS files
+### 4. Register the custom transfer agent in your local git config
+
+Git LFS 3.x ignores custom transfer agent settings in `.lfsconfig` for security reasons. You must add them to your local `.git/config` once after cloning:
+
+```bash
+git config lfs.standalonetransferagent nextcloud-agent
+git config lfs.customtransfer.nextcloud-agent.path "$(poetry env info --path)/bin/python3"
+git config lfs.customtransfer.nextcloud-agent.args lfs-nextcloud-agent.py
+```
+
+> **Why not `.lfsconfig`?** Since git-lfs 3.x, keys that can execute arbitrary code (`standalonetransferagent`, `customtransfer.*`) are rejected from the repo-level `.lfsconfig` — only user-level or local `.git/config` is trusted. The `.lfsconfig` in this repo documents the intended settings but they are ignored at runtime.
+
+### 5. Pull LFS files
 
 ```bash
 git lfs pull
@@ -98,7 +110,7 @@ Agent debug output (upload/download progress) is written to stderr and visible i
 
 ## How it works
 
-Git LFS is configured in `.lfsconfig` to delegate all transfers to `lfs-nextcloud-agent.py` instead of the default HTTPS transfer. The agent speaks the [LFS custom transfer protocol](https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md) over stdin/stdout and stores objects under:
+Git LFS is configured to delegate all transfers to `lfs-nextcloud-agent.py` instead of the default HTTPS transfer. The intended settings live in `.lfsconfig` for documentation, but must be copied into `.git/config` locally (see Setup step 4) because git-lfs 3.x rejects executable-code keys from repo-level config. The agent speaks the [LFS custom transfer protocol](https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md) over stdin/stdout and stores objects under:
 
 ```
 <NEXTCLOUD_LFS_PATH>/<oid[0:2]>/<oid[2:4]>/<full-oid>
