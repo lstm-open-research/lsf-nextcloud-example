@@ -1,63 +1,90 @@
-How it fits together
-Your Machine                GitHub              Nextcloud
-─────────────               ──────              ─────────
-git push ──► .dta pointer ──► repo         .dta file ──► /lfs-objects/
-             (tiny text)      (code)         (actual binary, via WebDAV)
+# git-lfs-nextcloud
 
-Nextcloud Setup
-First, create a dedicated folder in Nextcloud for LFS objects and create an App Password (never use your main password in scripts):
-Nextcloud → Settings → Security → Devices & Sessions → Create new app password
-Your WebDAV base URL will be:
-https://your-nextcloud.com/remote.php/dav/files/YOUR_USERNAME/
+Store Git LFS objects on your own Nextcloud instead of GitHub's LFS storage. Large files (`.dta`, `.rds`) are kept as tiny pointer files in Git; the actual binaries live on Nextcloud over WebDAV.
 
-Project Structure
-project/
-├── .gitattributes
-├── .lfsconfig
-├── lfs-nextcloud-agent.py
-├── .env                    # credentials (git-ignored!)
-├── code/
-└── outputs/
-    └── simulations/
-
-
-Collaborator Setup
-Anyone cloning your repo needs to:
 ```
-bash# 
-Clone repo (gets code + LFS pointers)
-git clone https://github.com/you/malaria-sim.git
-cd malaria-sim
+Your Machine          GitHub              Nextcloud
+────────────          ──────              ─────────
+git push ──► pointer ──► repo            binary ──► /LFS/your-project/
+             (text)       (code+pointers)           (via WebDAV)
 ```
 
-# Add their own .env with Nextcloud credentials
-```cp .env.example .env```   # you should commit a template .env.example
-```nano .env```              # fill in their credentials
+## Prerequisites
 
-# Pull actual .dta files from Nextcloud
+- Python ≥ 3.10
+- [Poetry](https://python-poetry.org/docs/#installation)
+- [git-lfs](https://git-lfs.com/) (`brew install git-lfs` / `apt install git-lfs`)
+- Access to a Nextcloud instance where you can create an App Password
+
+## Setup
+
+### 1. Install dependencies
+
+```bash
+poetry install
 ```
+
+### 2. Create a Nextcloud App Password
+
+In Nextcloud: **Personal Info → Settings → Security → Devices & Sessions → Create new app password**
+
+Never use your main password here.
+
+### 3. Configure credentials
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your values:
+
+```ini
+NEXTCLOUD_URL=https://your-nextcloud.com
+NEXTCLOUD_USER=your_username
+NEXTCLOUD_APP_PASSWORD=xxxx-xxxx-xxxx-xxxx
+NEXTCLOUD_LFS_PATH=LFS/your-project   # folder path inside Nextcloud
+```
+
+### 4. Pull LFS files
+
+```bash
 git lfs pull
 ```
-Provide a .env.example in the repo with empty values as a template:
-bash# .env.example  ← commit this one
-NEXTCLOUD_URL=https://your-nextcloud.com
-NEXTCLOUD_USER=
-NEXTCLOUD_APP_PASSWORD=
-NEXTCLOUD_LFS_PATH=LFS/malaria-sim
 
-Daily Workflow (unchanged from normal git)
-bash# In R: run simulation, save output
-# write_dta(output, "outputs/simulations/sim_20250217_seed42.dta")
+This downloads all tracked large files from Nextcloud into your working tree.
 
-git add outputs/simulations/sim_20250217_seed42.dta
-git commit -m "sim: seed=42, pop=10000, timesteps=365, pfpr=0.3"
-git push   # pointer goes to GitHub, .dta goes to Nextcloud via WebDAV
+## Daily workflow
 
-Verifying it works
-bash# Check what LFS is tracking
+```bash
+# Run simulation, then commit
+Rscript code/simulate.R 42 50000 365
+git add outputs/simulations/sim_*.dta
+git commit -m "sim: seed=42, pop=50000, timesteps=365"
+git push   # pointer → GitHub, binary → Nextcloud
+```
+
+`git pull` / `git lfs pull` work the same way in reverse.
+
+## Verifying
+
+```bash
+# See which files LFS is managing
 git lfs ls-files
 
-# Confirm the file landed on Nextcloud
-curl -u your_user:your_app_password \
-  https://your-nextcloud.com/remote.php/dav/files/your_user/LFS/malaria-sim/ \
+# Confirm a file landed on Nextcloud
+curl -u $NEXTCLOUD_USER:$NEXTCLOUD_APP_PASSWORD \
+  $NEXTCLOUD_URL/remote.php/dav/files/$NEXTCLOUD_USER/$NEXTCLOUD_LFS_PATH/ \
   -X PROPFIND | grep -o '<d:href>[^<]*</d:href>'
+```
+
+Agent debug output (upload/download progress) is written to stderr and visible in your terminal during `git push`/`git pull`.
+
+## How it works
+
+Git LFS is configured in `.lfsconfig` to delegate all transfers to `lfs-nextcloud-agent.py` instead of the default HTTPS transfer. The agent speaks the [LFS custom transfer protocol](https://github.com/git-lfs/git-lfs/blob/main/docs/custom-transfers.md) over stdin/stdout and stores objects under:
+
+```
+<NEXTCLOUD_LFS_PATH>/<oid[0:2]>/<oid[2:4]>/<full-oid>
+```
+
+mirroring Git LFS's own internal layout.
