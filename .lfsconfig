@@ -1,0 +1,6 @@
+[lfs]
+    standalonetransferagent = nextcloud-agent
+
+[lfs "customtransfer.nextcloud-agent"]
+    path = python3
+    args = lfs-nextcloud-agent.py
