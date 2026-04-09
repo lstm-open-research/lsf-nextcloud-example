@@ -1,11 +1,11 @@
 # git-lfs-nextcloud
 
-Store Git LFS objects on your own Nextcloud instead of GitHub's LFS storage. Large files (`.dta`, `.rds`) are kept as tiny pointer files in Git; the actual binaries live on Nextcloud over WebDAV.
+Store [Git Large File Storage](https://git-lfs.com) (LFS) objects on your [LSTM Nextcloud](http://nextcloud.lstmed.ac.uk/) instead of [GitHub's LFS storage](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-git-large-file-storage). Large files (`.dta`, `.rds`) are kept as tiny pointer files in Git; the actual binaries live on Nextcloud over [WebDAV](https://en.wikipedia.org/wiki/WebDAV).
 
 ```
 Your Machine          GitHub              Nextcloud
 ────────────          ──────              ─────────
-git push ──► pointer ──► repo            binary ──► /LFS/your-project/
+git push ──► pointer ──► repo            binary ──► /LFS/your-project/<oid[0:2]>/<oid[2:4]>/<full-oid>
              (text)       (code+pointers)           (via WebDAV)
 ```
 
