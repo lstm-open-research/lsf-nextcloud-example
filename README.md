@@ -51,7 +51,7 @@ NEXTCLOUD_LFS_PATH=LFS/your-project   # folder path inside Nextcloud
 
 ### 4. Register the custom transfer agent in your local git config
 
-Git LFS 3.x ignores custom transfer agent settings in `.lfsconfig` for security reasons. You must add them to your local `.git/config` once after cloning:
+You must add them to your local `.git/config` once after cloning:
 
 ```bash
 git config lfs.standalonetransferagent nextcloud-agent
@@ -59,7 +59,13 @@ git config lfs.customtransfer.nextcloud-agent.path "$(poetry env info --path)/bi
 git config lfs.customtransfer.nextcloud-agent.args lfs-nextcloud-agent.py
 ```
 
-> **Why not `.lfsconfig`?** Since git-lfs 3.x, keys that can execute arbitrary code (`standalonetransferagent`, `customtransfer.*`) are rejected from the repo-level `.lfsconfig` — only user-level or local `.git/config` is trusted. The `.lfsconfig` in this repo documents the intended settings but they are ignored at runtime.
+### 5. Install Git LFS extension
+
+```
+git lfs install  
+Updated Git hooks.
+Git LFS initialized.
+```
 
 ### 5. Pull LFS files
 
