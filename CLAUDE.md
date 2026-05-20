@@ -13,10 +13,17 @@ This is a **custom Git LFS transfer agent** that stores large files on Nextcloud
 3. When `git push`/`git pull` runs, Git LFS spawns `lfs-nextcloud-agent.py` as a subprocess and communicates via **JSON messages over stdin/stdout** (the LFS custom transfer protocol).
 4. The agent uploads/downloads files to Nextcloud via WebDAV, mirroring Git LFS's internal directory layout: `<LFS_PATH>/<oid[:2]>/<oid[2:4]>/<oid>`.
 
+## Target audience
+
+Users are on **macOS, Linux, or Windows**. Windows users typically use **RStudio** for git (commit/push/pull via its Git pane) and run setup commands in **Git Bash** via RStudio's Terminal tab.
+
 ## Setup requirements
 
 - Python ≥ 3.10 + Poetry; R ≥ 4.1 + renv
-- `brew install git-lfs` (or distro equivalent) — must be installed before any commit/push that involves LFS files, otherwise git treats them as regular binaries
+- git-lfs — must be installed before any commit/push that involves LFS files, otherwise git treats them as regular binaries
+  - macOS: `brew install git-lfs`
+  - Linux: `apt install git-lfs` (or distro equivalent)
+  - Windows: bundled with [Git for Windows](https://git-scm.com/) — no separate install needed
 - `.env` file (git-ignored) with:
   ```
   NEXTCLOUD_URL=https://your-nextcloud.com
@@ -27,10 +34,15 @@ This is a **custom Git LFS transfer agent** that stores large files on Nextcloud
 - Custom transfer agent registered in `.git/config` (once per clone, not propagated by git):
   ```bash
   git config lfs.standalonetransferagent nextcloud-agent
-  git config lfs.customtransfer.nextcloud-agent.path "$(poetry env info --path)/bin/python3"
   git config lfs.customtransfer.nextcloud-agent.args lfs-nextcloud-agent.py
+
+  # macOS / Linux:
+  git config lfs.customtransfer.nextcloud-agent.path "$(poetry env info --path)/bin/python3"
+
+  # Windows (Git Bash):
+  git config lfs.customtransfer.nextcloud-agent.path "$(poetry env info --path)/Scripts/python.exe"
   ```
-  The `path` must point to the **poetry venv python** (not bare `python3`) so the `requests` dependency is on the path. git-lfs spawns the agent outside any active shell environment.
+  The `path` must point to the **poetry venv python** (not bare `python3`) so the `requests` dependency is on the path. git-lfs spawns the agent outside any active shell environment. The venv python subfolder differs by platform: `bin/python3` on macOS/Linux, `Scripts/python.exe` on Windows.
 
 ## Running / testing the agent
 
